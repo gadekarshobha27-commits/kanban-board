@@ -1,0 +1,81 @@
+let data = JSON.parse(localStorage.getItem("kanban")) || {
+  todo: [],
+  inprogress: [],
+  done: []
+};
+
+function saveData() {
+  localStorage.setItem("kanban", JSON.stringify(data));
+}
+
+function createTaskElement(text, column) {
+  const task = document.createElement("div");
+  task.className = "task";
+  task.draggable = true;
+
+  const span = document.createElement("span");
+  span.innerText = text;
+
+  const delBtn = document.createElement("button");
+  delBtn.innerHTML = "✖";
+  delBtn.className = "delete-btn";
+
+  delBtn.onclick = () => {
+    data[column] = data[column].filter(t => t !== text);
+    render();
+  };
+
+  task.appendChild(span);
+  task.appendChild(delBtn);
+
+  task.addEventListener("dragstart", (e) => {
+    e.dataTransfer.setData("text/plain", JSON.stringify({ text, column }));
+  });
+
+  return task;
+}
+
+function render() {
+  document.querySelectorAll(".column").forEach(col => {
+    const column = col.dataset.column;
+    const list = col.querySelector(".task-list");
+    list.innerHTML = "";
+
+    data[column].forEach(taskText => {
+      list.appendChild(createTaskElement(taskText, column));
+    });
+  });
+
+  saveData();
+}
+
+document.querySelectorAll(".column").forEach(col => {
+  const list = col.querySelector(".task-list");
+
+  list.addEventListener("dragover", (e) => e.preventDefault());
+
+  list.addEventListener("drop", (e) => {
+    const { text, column } = JSON.parse(e.dataTransfer.getData("text/plain"));
+    const newColumn = col.dataset.column;
+
+    data[column] = data[column].filter(t => t !== text);
+    data[newColumn].push(text);
+
+    render();
+  });
+});
+
+document.querySelectorAll(".add-task button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const input = btn.previousElementSibling;
+    const column = btn.closest(".column").dataset.column;
+
+    if (input.value.trim() === "") return;
+
+    data[column].push(input.value.trim());
+    input.value = "";
+    render();
+  });
+});
+
+render();
